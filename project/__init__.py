@@ -24,6 +24,9 @@ def create_app() -> FastAPI:
     from project.users import users_router
     app.include_router(users_router)
 
+    from project.ws import ws_router                   # new
+    app.include_router(ws_router)                      # new
+
     @app.get("/")
     async def root():
         return {"message": "Hello World"}

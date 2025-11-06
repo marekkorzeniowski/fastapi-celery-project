@@ -70,3 +70,8 @@ def task_status(task_id: str):
             'state': state,
         }
     return JSONResponse(response)
+
+
+@users_router.get("/form_ws/")
+def form_ws_example(request: Request):
+    return templates.TemplateResponse("form_ws.html", {"request": request})

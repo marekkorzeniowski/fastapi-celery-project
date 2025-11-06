@@ -8,6 +8,7 @@ RUN apt-get update \
      build-essential \
      libpq-dev \
      netcat-openbsd \
+     telnet \
   && rm -rf /var/lib/apt/lists/*
 
   # dependencies for building Python packages

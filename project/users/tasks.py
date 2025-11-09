@@ -6,6 +6,8 @@ from celery import shared_task
 from celery.signals import task_postrun
 from celery.utils.log import get_task_logger
 
+from main import celery
+
 logger = get_task_logger(__name__)
 
 
@@ -25,19 +27,45 @@ def sample_task(email):
 
     api_call(email)
 
+# Option 1 - try/except block with self.retry
+# @shared_task(bind=True)
+# def task_process_notification(self):
+#     try:
+#         if not random.choice([0, 1]):
+#             # mimic random error
+#             raise Exception()
+#
+#         # this would block the I/O
+#         requests.post("https://httpbin.org/delay/5")
+#     except Exception as e:
+#         logger.error("exception raised, it would be retry after 5 seconds")
+#         raise self.retry(exc=e, countdown=5)
 
-@shared_task(bind=True)
+
+# Option 2 - Task Retry Decorator
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=5, retry_jitter=True, retry_kwargs={"max_retries": 5})
 def task_process_notification(self):
-    try:
-        if not random.choice([0, 1]):
-            # mimic random error
-            raise Exception()
+    if not random.choice([0, 1]):
+        # mimic random error
+        raise Exception()
 
-        # this would block the I/O
-        requests.post("https://httpbin.org/delay/5")
-    except Exception as e:
-        logger.error("exception raised, it would be retry after 5 seconds")
-        raise self.retry(exc=e, countdown=5)
+    requests.post("https://httpbin.org/delay/5")
+
+
+# Option 3 - the same as above but with own class defined
+# class BaseTaskWithRetry(celery.Task):
+#     autoretry_for = (Exception, KeyError)
+#     retry_kwargs = {"max_retries": 5}
+#     retry_backoff = True
+#
+#
+# @shared_task(bind=True, base=BaseTaskWithRetry)
+# def task_process_notification(self):
+#     raise Exception()
+
+
+
+
 
 
 @task_postrun.connect

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from . import users_router
 from .schemas import UserBody
-from .tasks import sample_task, task_process_notification, task_send_welcome_email
+from .tasks import sample_task, task_process_notification, task_send_welcome_email, task_add_subscribe
 from .models import User
 from project.database import get_db_session
 
@@ -68,6 +68,24 @@ def task_status(task_id: str):
     task = AsyncResult(task_id)
     state = task.state
 
+    @users_router.post("/user_subscribe/")
+    def user_subscribe(
+            user_body: UserBody,
+            session: Session = Depends(get_db_session)
+    ):
+        with session.begin():
+            user = session.query(User).filter_by(
+                username=user_body.username
+            ).first()
+            if not user:
+                user = User(
+                    username=user_body.username,
+                    email=user_body.email,
+                )
+                session.add(user)
+        task_add_subscribe.delay(user.id)
+        return {"message": "send task to Celery successfully"}
+
     if state == 'FAILURE':
         error = str(task.result)
         response = {
@@ -102,6 +120,6 @@ def transaction_celery(session: Session = Depends(get_db_session)):
         session.add(user)
 
     # user.id auto-generated!
-    print(f'user {user.id} {user.username} is persistent now')
+    logger.info(f"user {user.id} {user.username} is persistent now")
     task_send_welcome_email.delay(user.id)
     return {"message": "done"}

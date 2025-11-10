@@ -17,6 +17,9 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(lifespan=lifespan)
 
+    from project.logging import configure_logging          # new
+    configure_logging()
+
     # do this before loading routes
     from project.celery_utils import create_celery
     app.celery_app = create_celery()

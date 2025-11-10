@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 templates = Jinja2Templates(directory="project/users/templates")
 
 
+def random_username():
+    username = "".join([random.choice(ascii_lowercase) for i in range(5)])
+    return username
+
+
 def api_call(email: str):
     # used for testing a failed api call
     if random.choice([0, 1]):
@@ -27,29 +32,6 @@ def api_call(email: str):
 
     # used for simulating a call to a third-party api
     requests.post("https://httpbin.org/delay/5")
-
-
-def random_username():
-    username = "".join([random.choice(ascii_lowercase) for i in range(5)])
-    return username
-
-
-@users_router.post("/webhook_test/")
-def webhook_test():
-    if not random.choice([0, 1]):
-        # mimic an error
-        raise Exception()
-
-    # blocking process
-    requests.post("https://httpbin.org/delay/5")
-    return "pong"
-
-
-@users_router.post("/webhook_test_async/")
-def webhook_test_async():
-    task = task_process_notification.delay()
-    print(task.id)
-    return "pong"
 
 
 @users_router.get("/form/")
@@ -68,24 +50,6 @@ def task_status(task_id: str):
     task = AsyncResult(task_id)
     state = task.state
 
-    @users_router.post("/user_subscribe/")
-    def user_subscribe(
-            user_body: UserBody,
-            session: Session = Depends(get_db_session)
-    ):
-        with session.begin():
-            user = session.query(User).filter_by(
-                username=user_body.username
-            ).first()
-            if not user:
-                user = User(
-                    username=user_body.username,
-                    email=user_body.email,
-                )
-                session.add(user)
-        task_add_subscribe.delay(user.id)
-        return {"message": "send task to Celery successfully"}
-
     if state == 'FAILURE':
         error = str(task.result)
         response = {
@@ -97,6 +61,24 @@ def task_status(task_id: str):
             'state': state,
         }
     return JSONResponse(response)
+
+
+@users_router.post("/webhook_test/")
+def webhook_test():
+    if not random.choice([0, 1]):
+        # mimic an error
+        raise Exception()
+
+    # blocking process
+    requests.post("https://httpbin.org/delay/5")
+    return "pong"
+
+
+@users_router.post("/webhook_test_async/")
+def webhook_test_async():
+    task = task_process_notification.delay()
+    print(task.id)
+    return "pong"
 
 
 @users_router.get("/form_ws/")
@@ -119,7 +101,25 @@ def transaction_celery(session: Session = Depends(get_db_session)):
     with session.begin():
         session.add(user)
 
-    # user.id auto-generated!
     logger.info(f"user {user.id} {user.username} is persistent now")
     task_send_welcome_email.delay(user.id)
     return {"message": "done"}
+
+
+@users_router.post("/user_subscribe/")
+def user_subscribe(
+        user_body: UserBody,
+        session: Session = Depends(get_db_session)
+):
+    with session.begin():
+        user = session.query(User).filter_by(
+            username=user_body.username
+        ).first()
+        if not user:
+            user = User(
+                username=user_body.username,
+                email=user_body.email,
+            )
+            session.add(user)
+    task_add_subscribe.delay(user.id)
+    return {"message": "send task to Celery successfully"}

@@ -25,6 +25,7 @@ def test_post_succeed(db_session, monkeypatch, user):
 def test_exception(db_session, monkeypatch, user):
     # user = UserFactory.create()
 
+
     mock_requests_post = mock.MagicMock()
     mock_requests_post.side_effect = Exception()
     monkeypatch.setattr(requests, "post", mock_requests_post)

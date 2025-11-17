@@ -54,6 +54,8 @@ class BaseConfig:
     # Determine based on the task name -> @shared_task(name="high_priority:dynamic_example_three")
     CELERY_TASK_ROUTES = (route_task,)
 
+    UPLOADS_DEFAULT_DEST: str = str(BASE_DIR / "upload")
+
 
 class DevelopmentConfig(BaseConfig):
     pass

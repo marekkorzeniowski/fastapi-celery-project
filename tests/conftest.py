@@ -4,10 +4,12 @@ import pytest
 
 os.environ["FASTAPI_CONFIG"] = "testing"  # noqa
 
-from pytest_factoryboy import register                      # new
-from project.users.factories import UserFactory             # new
+from pytest_factoryboy import register
+from project.users.factories import UserFactory
+from project.tdd.factories import MemberFactory
 
-register(UserFactory)                                       # new
+register(UserFactory)
+register(MemberFactory)                                    # new
 
 
 @pytest.fixture
@@ -40,3 +42,9 @@ def client(app):
     from fastapi.testclient import TestClient
 
     yield TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def tmp_upload_dir(tmpdir, settings):
+    settings.UPLOADS_DEFAULT_DEST = tmpdir.mkdir("tmp")
+

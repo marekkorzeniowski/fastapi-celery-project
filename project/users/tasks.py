@@ -7,6 +7,7 @@ from celery import shared_task
 from celery.signals import task_postrun, after_setup_logger
 from celery.utils.log import get_task_logger
 
+from project.celery_utils import custom_celery_task
 from project.database import db_context
 
 logger = get_task_logger(__name__)
@@ -44,8 +45,12 @@ def sample_task(email):
 
 
 # Option 2 - Task Retry Decorator
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=5, retry_jitter=True, retry_kwargs={"max_retries": 5})
-def task_process_notification(self):
+# @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=5, retry_jitter=True, retry_kwargs={"max_retries": 5})
+# def task_process_notification(self):
+
+# Option 4 - using own decorator
+@custom_celery_task(max_retries=3)
+def task_process_notification():
     if not random.choice([0, 1]):
         # mimic random error
         raise Exception()
